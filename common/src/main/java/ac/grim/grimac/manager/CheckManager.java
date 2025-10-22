@@ -77,6 +77,7 @@ public class CheckManager {
     private final ClassToInstanceMap<PostPredictionCheck> postPredictionChecks;
     @Getter
     private final PacketEntityReplication packetEntityReplication;
+    private final GrimPlayer player;
 
     private final List<PacketCheck> packetChecksValues;
     private final List<PositionCheck> positionChecksValues;
@@ -90,6 +91,7 @@ public class CheckManager {
     public CheckManager(GrimPlayer player) {
         packetEntityReplication = new PacketEntityReplication(player);
 
+        this.player = player;
         packetChecks = new ImmutableClassToInstanceMap.Builder<PacketCheck>()
                 .put(CompensatedCameraEntity.class, player.cameraEntity)
                 .put(PacketOrderProcessor.class, player.packetOrderProcessor)
@@ -327,105 +329,73 @@ public class CheckManager {
     }
 
     public void onPrePredictionReceivePacket(final PacketReceiveEvent packet) {
-        for (PacketCheck check : prePredictionChecksValues) {
-            check.onPacketReceive(packet);
+        runChecks(prePredictionChecksValues, packet, PacketCheck::onPacketReceive);
+    }
+    @FunctionalInterface
+    interface CheckRunner<T, E> {
+        void run(T check, E event);
+    }
+
+    private <T extends AbstractCheck & CanBeDisabled, E> void runChecks(List<T> checks, E event, CheckRunner<T, E> runner) {
+        final var playerExperimental = player.isExperimentalChecks();
+        for (T check : checks) {
+            if (check.isRun() && (!check.isExperimental() || playerExperimental)) {
+                runner.run(check, event);
+            }
         }
     }
 
+
     public void onPacketReceive(final PacketReceiveEvent packet) {
-        for (PacketCheck check : packetChecksValues) {
-            check.onPacketReceive(packet);
-        }
-        for (PostPredictionCheck check : postPredictionChecksValues) {
-            check.onPacketReceive(packet);
-        }
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onPacketReceive(packet);
-        }
-        for (BlockBreakCheck check : blockBreakChecksValues) {
-            check.onPacketReceive(packet);
-        }
+        runChecks(packetChecksValues, packet, PacketCheck::onPacketReceive);
+        runChecks(postPredictionChecksValues, packet, PostPredictionCheck::onPacketReceive);
+        runChecks(blockPlaceChecksValues, packet, BlockPlaceCheck::onPacketReceive);
+        runChecks(blockBreakChecksValues, packet, BlockBreakCheck::onPacketReceive);
     }
 
     public void onPacketSend(final PacketSendEvent packet) {
-        for (PacketCheck check : prePredictionChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (PacketCheck check : packetChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (PostPredictionCheck check : postPredictionChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (BlockBreakCheck check : blockBreakChecksValues) {
-            check.onPacketSend(packet);
-        }
+        runChecks(prePredictionChecksValues, packet, PacketCheck::onPacketSend);
+        runChecks(packetChecksValues, packet, PacketCheck::onPacketSend);
+        runChecks(postPredictionChecksValues, packet, PostPredictionCheck::onPacketSend);
+        runChecks(blockPlaceChecksValues, packet, BlockPlaceCheck::onPacketSend);
+        runChecks(blockBreakChecksValues, packet, BlockBreakCheck::onPacketSend);
     }
 
     public void onPositionUpdate(final PositionUpdate position) {
-        for (PositionCheck check : positionChecksValues) {
-            check.onPositionUpdate(position);
-        }
+        runChecks(positionChecksValues,position,PositionCheck::onPositionUpdate);
     }
 
     public void onRotationUpdate(final RotationUpdate rotation) {
-        for (RotationCheck check : rotationChecksValues) {
-            check.process(rotation);
-        }
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.process(rotation);
-        }
+        runChecks(rotationChecksValues,rotation,RotationCheck::process);
+        runChecks(blockPlaceChecksValues,rotation,BlockPlaceCheck::process);
     }
 
     public void onVehiclePositionUpdate(final VehiclePositionUpdate update) {
-        for (VehicleCheck check : vehicleChecksValues) {
-            check.process(update);
-        }
+        runChecks(vehicleChecksValues,update,VehicleCheck::process);
     }
 
     public void onPredictionFinish(final PredictionComplete complete) {
-        for (PostPredictionCheck check : postPredictionChecksValues) {
-            check.onPredictionComplete(complete);
-        }
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onPredictionComplete(complete);
-        }
-        for (BlockBreakCheck check : blockBreakChecksValues) {
-            check.onPredictionComplete(complete);
-        }
+        runChecks(postPredictionChecksValues,complete,PostPredictionCheck::onPredictionComplete);
+        runChecks(blockPlaceChecksValues,complete,BlockPlaceCheck::onPredictionComplete);
+        runChecks(blockBreakChecksValues,complete,BlockBreakCheck::onPredictionComplete);
     }
 
     public void onBlockPlace(final BlockPlace place) {
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onBlockPlace(place);
-        }
+        runChecks(blockPlaceChecksValues,place,BlockPlaceCheck::onBlockPlace);
     }
 
     public void onPostFlyingBlockPlace(final BlockPlace place) {
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onPostFlyingBlockPlace(place);
-        }
+        runChecks(blockPlaceChecksValues,place,BlockPlaceCheck::onPostFlyingBlockPlace);
     }
 
     public void onBlockBreak(final BlockBreak blockBreak) {
-        for (BlockBreakCheck check : blockBreakChecksValues) {
-            check.onBlockBreak(blockBreak);
-        }
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onBlockBreak(blockBreak);
-        }
+        runChecks(blockBreakChecksValues,blockBreak,BlockBreakCheck::onBlockBreak);
+        runChecks(blockPlaceChecksValues,blockBreak,BlockPlaceCheck::onBlockBreak);
     }
 
     public void onPostFlyingBlockBreak(final BlockBreak blockBreak) {
-        for (BlockBreakCheck check : blockBreakChecksValues) {
-            check.onPostFlyingBlockBreak(blockBreak);
-        }
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onPostFlyingBlockBreak(blockBreak);
-        }
+        runChecks(blockBreakChecksValues,blockBreak,BlockBreakCheck::onPostFlyingBlockBreak);
+        runChecks(blockPlaceChecksValues,blockBreak,BlockPlaceCheck::onPostFlyingBlockBreak);
     }
 
     public ExplosionHandler getExplosionHandler() {

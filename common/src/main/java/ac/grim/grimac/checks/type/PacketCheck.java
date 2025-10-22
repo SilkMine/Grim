@@ -4,7 +4,8 @@ import ac.grim.grimac.api.AbstractCheck;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 
-public interface PacketCheck extends AbstractCheck {
+public interface PacketCheck extends AbstractCheck,CanBeDisabled {
+
     default void onPacketReceive(final PacketReceiveEvent event) {
     }
 

@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 
 import static com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerFlying.isFlying;
@@ -37,6 +38,7 @@ public class Check extends GrimProcessor implements AbstractCheck {
 
     private boolean experimental;
     private @Setter boolean isEnabled;
+    protected @Getter boolean run = true;
 
     private boolean exemptPermission;
     private boolean noSetbackPermission;
@@ -142,6 +144,7 @@ public class Check extends GrimProcessor implements AbstractCheck {
         setbackVL = configuration.getDoubleElse(configName + ".setbackvl", setbackVL);
         displayName = configuration.getStringElse(configName + ".displayname", checkName);
         description = configuration.getStringElse(configName + ".description", description);
+        run = !configuration.getListElse("disabled-checks", Collections.emptyList()).contains(configName);
 
         if (setbackVL == -1) setbackVL = Double.MAX_VALUE;
         onReload(configuration);
