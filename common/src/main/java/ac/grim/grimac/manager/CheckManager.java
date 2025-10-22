@@ -73,6 +73,7 @@ public class CheckManager implements BasicReloadable {
     private static boolean inited;
     public final ClassToInstanceMap<AbstractProcessor> processors;
     public final Collection<AbstractCheck> checks;
+    private final GrimPlayer player;
 
     private final PreViaPacketReceiveListener[] preViaPacketReceiveListeners;
     private final PreViaPacketSendListener[] preViaPacketSendListeners;
@@ -89,6 +90,8 @@ public class CheckManager implements BasicReloadable {
     private final PostPredictionListener[] postPredictionListeners;
 
     public CheckManager(GrimPlayer player) {
+        this.player = player;
+
         processors = new ImmutableClassToInstanceMap.Builder<AbstractProcessor>()
                 .put(CompensatedCameraEntity.class, player.cameraEntity)
                 .put(ChatA.class, new ChatA(player))
@@ -330,80 +333,102 @@ public class CheckManager implements BasicReloadable {
         return processors.getInstance(check);
     }
 
+    private boolean isCheckDisabled(Object listener) {
+        if (listener instanceof CanBeDisabled canBeDisabled && !canBeDisabled.isRun()) {
+            return true;
+        }
+        return listener instanceof Check check
+                && check.isExperimental()
+                && !player.isExperimentalChecks();
+    }
+
     public void onPrePredictionReceivePacket(final PacketReceiveEvent packet) {
         for (PrePredictionPacketReceiveListener check : prePredictionPacketReceiveListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPrePredictionPacketReceive(packet);
         }
     }
 
     public void onPacketReceive(final PacketReceiveEvent packet) {
         for (PacketReceiveListener check : packetReceiveListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPacketReceive(packet);
         }
     }
 
     public void onPreViaPacketReceive(final PacketReceiveEvent packet) {
         for (PreViaPacketReceiveListener check : preViaPacketReceiveListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPreViaPacketReceive(packet);
         }
     }
 
     public void onPacketSend(final PacketSendEvent packet) {
         for (PacketSendListener check : packetSendListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPacketSend(packet);
         }
     }
 
     public void onPreViaPacketSend(final PacketSendEvent packet) {
         for (PreViaPacketSendListener check : preViaPacketSendListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPreViaPacketSend(packet);
         }
     }
 
     public void onPositionUpdate(final PositionUpdate position) {
         for (PositionListener check : positionListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPositionUpdate(position);
         }
     }
 
     public void onRotationUpdate(final RotationUpdate rotation) {
         for (RotationListener check : rotationListeners) {
+            if (isCheckDisabled(check)) continue;
             check.process(rotation);
         }
     }
 
     public void onVehiclePositionUpdate(final VehiclePositionUpdate update) {
         for (VehicleListener check : vehicleListeners) {
+            if (isCheckDisabled(check)) continue;
             check.process(update);
         }
     }
 
     public void onPredictionFinish(final PredictionComplete complete) {
         for (PostPredictionListener check : postPredictionListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPredictionComplete(complete);
         }
     }
 
     public void onBlockPlace(final BlockPlace place) {
         for (BlockPlaceListener check : blockPlaceListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onBlockPlace(place);
         }
     }
 
     public void onPostFlyingBlockPlace(final BlockPlace place) {
         for (PostFlyingBlockPlaceListener check : postFlyingBlockPlaceListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPostFlyingBlockPlace(place);
         }
     }
 
     public void onBlockBreak(final BlockBreak blockBreak) {
         for (BlockBreakListener check : blockBreakListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onBlockBreak(blockBreak);
         }
     }
 
     public void onPostFlyingBlockBreak(final BlockBreak blockBreak) {
         for (PostFlyingBlockBreakListener check : postFlyingBlockBreakListeners) {
+            if (isCheckDisabled(check)) continue;
             check.onPostFlyingBlockBreak(blockBreak);
         }
     }

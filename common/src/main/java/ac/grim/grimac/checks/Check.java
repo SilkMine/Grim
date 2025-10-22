@@ -7,6 +7,7 @@ import ac.grim.grimac.api.event.events.FlagEvent;
 import ac.grim.grimac.api.storage.verbose.Verbose;
 import ac.grim.grimac.api.storage.verbose.VerboseBuf;
 import ac.grim.grimac.api.storage.verbose.VerboseRenderContext;
+import ac.grim.grimac.checks.type.CanBeDisabled;
 import ac.grim.grimac.internal.storage.verbose.VerboseRegistry;
 import ac.grim.grimac.player.GrimPlayer;
 import lombok.Getter;
@@ -14,12 +15,13 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Supplier;
 
 // Class from https://github.com/Tecnio/AntiCheatBase/blob/master/src/main/java/me/tecnio/anticheat/check/Check.java
 @Getter
-public class Check extends GrimProcessor implements AbstractCheck {
+public class Check extends GrimProcessor implements AbstractCheck, CanBeDisabled {
     private static final FlagEvent.Channel FLAG_CHANNEL = GrimAPI.INSTANCE.getEventBus().get(FlagEvent.class);
     private static final ThreadLocal<VerboseBuf> VERBOSE = ThreadLocal.withInitial(VerboseBuf::new);
 
@@ -45,6 +47,7 @@ public class Check extends GrimProcessor implements AbstractCheck {
     private double decay;
     private double setbackVL;
     @Setter private boolean isEnabled;
+    protected boolean run = true;
 
     // permissions
     private boolean exemptPermission;
@@ -219,6 +222,7 @@ public class Check extends GrimProcessor implements AbstractCheck {
         setbackVL = configuration.getDoubleElse(getConfigName() + ".setbackvl", defaultSetbackVL);
         displayName = configuration.getStringElse(getConfigName() + ".displayname", checkName);
         description = configuration.getStringElse(getConfigName() + ".description", defaultDescription);
+        run = !configuration.getListElse("disabled-checks", Collections.emptyList()).contains(getConfigName());
 
         if (setbackVL == -1) setbackVL = Double.MAX_VALUE;
         super.reload(configuration);

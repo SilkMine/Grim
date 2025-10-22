@@ -228,6 +228,10 @@ max-ping-out-of-flying: 1000
 # This prevents high latency players from being able to use 1 firework boost with an elytra forever.
 max-ping-firework-boost: 1000
 
+
+# List of checks to disable. This is not recommended, but can be used to temporarily disable checks while debugging.
+disabled-checks: []
+
 # Grim always refreshes cached permissions when a player joins and when Grim reloads,
 # whether or not LuckPerms is installed.
 # LuckPerms event hooks also refresh cached Grim permissions immediately in normal setups.
