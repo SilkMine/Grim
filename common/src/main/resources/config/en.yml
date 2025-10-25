@@ -170,9 +170,12 @@ Reach:
     # There is 0.03 forced expansion with 1.9-1.18.1 (not 1.18.2), or some client/server combinations due to
     # protocol changes and limitations. This check is most powerful with 1.7/1.8 clients on 1.8 servers.
     threshold: 0.0005
-    # Should we cancel hits that we know are impossible?
-    # 3.00-3.03 hits may go through but still be flagged, due to packet order limitations
-    block-impossible-hits: true
+    # Should we cancel hits that exceed reach distance? (player too far from target)
+    # Set to false to allow reach hacks while still flagging
+    block-reach-hits: true
+    # Should we cancel hits that miss the entity hitbox? (player not looking at target)
+    # Set to false to allow aim-assist style behavior while still flagging
+    block-hitbox-hits: false
     # This will send an additional packet at the end of every tick to increase the likelihood of catching cheats
     # This injects into server's connection list to send a final packet just before the server flushes
     # Enabling this will increase bandwidth usage for all players

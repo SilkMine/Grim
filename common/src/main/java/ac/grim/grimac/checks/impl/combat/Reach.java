@@ -64,7 +64,8 @@ public class Reach extends Check implements PacketCheck {
     // Only one flag per reach attack, per entity, per tick.
     // We store position because lastX isn't reliable on teleports.
     private final Int2ObjectMap<InteractionData> playerAttackQueue = new Int2ObjectOpenHashMap<>();
-    private boolean cancelImpossibleHits;
+    private boolean blockReachHits;
+    private boolean blockHitboxHits;
     private double threshold;
     private double cancelBuffer; // For the next 4 hits after using reach, we aggressively cancel reach
 
@@ -181,9 +182,10 @@ public class Reach extends Check implements PacketCheck {
             )); // Queue for next tick for very precise check
         }
 
-        boolean knownInvalid = isKnownInvalid(entity, hasRange, maxReach, hitboxMargin);
+        CheckResult knownInvalid = isKnownInvalid(entity, hasRange, maxReach, hitboxMargin);
 
-        if ((shouldModifyPackets() && cancelImpossibleHits && knownInvalid) || tooManyAttacks) {
+        if (shouldModifyPackets() && ((knownInvalid.type() == ResultType.HITBOX && blockHitboxHits)
+                    || (knownInvalid.type() == ResultType.REACH && blockReachHits)) || tooManyAttacks) {
             event.setCancelled(true);
             player.onPacketCancel();
         }
@@ -197,24 +199,28 @@ public class Reach extends Check implements PacketCheck {
     // than this method.  If this method flags, the other method WILL flag.
     //
     // Meaning that the other check should be the only one that flags.
-    private boolean isKnownInvalid(PacketEntity reachEntity, boolean hasAttackRange, float itemMaxReach, float itemHitboxMargin) {
+    private CheckResult isKnownInvalid(PacketEntity reachEntity, boolean hasAttackRange, float itemMaxReach, float itemHitboxMargin) {
         // If the entity doesn't exist, or if it is exempt, or if it is dead
         if ((blacklisted.contains(reachEntity.type) || !reachEntity.isLivingEntity) && reachEntity.type != EntityTypes.END_CRYSTAL)
-            return false; // exempt
+            return NONE; // exempt
 
         if (player.gamemode == GameMode.CREATIVE || player.gamemode == GameMode.SPECTATOR)
-            return false;
-        if (player.inVehicle()) return false;
+            return NONE;
+        if (player.inVehicle()) return NONE;
 
         // Filter out what we assume to be cheats
         if (cancelBuffer != 0) {
-            CheckResult result = checkReach(reachEntity, player.x, player.y, player.z, hasAttackRange, itemMaxReach, itemHitboxMargin, true);
-            return result.isFlag(); // If they flagged
+            return checkReach(reachEntity, player.x, player.y, player.z, hasAttackRange, itemMaxReach, itemHitboxMargin, true);
         } else {
             SimpleCollisionBox targetBox = getTargetBox(reachEntity);
 
             double maxReach = applyReachModifiers(targetBox, hasAttackRange, itemMaxReach, itemHitboxMargin, !player.packetStateData.didLastMovementIncludePosition);
-            return ReachUtils.getMinReachToBox(player, targetBox) > maxReach;
+            final double reachToBox = ReachUtils.getMinReachToBox(player, targetBox);
+
+            if (reachToBox > maxReach) {
+                return new CheckResult(ResultType.REACH, "Reach to target: " + targetBox);
+            }
+            return NONE;
         }
     }
 
@@ -307,6 +313,7 @@ public class Reach extends Check implements PacketCheck {
             }
         }
 
+
         return NONE;
     }
 
@@ -352,7 +359,8 @@ public class Reach extends Check implements PacketCheck {
 
     @Override
     public void onReload(ConfigManager config) {
-        this.cancelImpossibleHits = config.getBooleanElse("Reach.block-impossible-hits", true);
+        this.blockReachHits = config.getBooleanElse("Reach.block-reach-hits", true);
+        this.blockHitboxHits = config.getBooleanElse("Reach.block-hitbox-hits", false);
         this.threshold = config.getDoubleElse("Reach.threshold", 0.0005);
     }
 
