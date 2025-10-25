@@ -67,7 +67,8 @@ public class Reach extends Check implements PacketReceiveListener {
     // Only one flag per reach attack, per entity, per tick.
     // We store position because lastX isn't reliable on teleports.
     private final Int2ObjectMap<InteractionData> playerAttackQueue = new Int2ObjectOpenHashMap<>();
-    private boolean cancelImpossibleHits;
+    private boolean blockReachHits;
+    private boolean blockHitboxHits;
     private double threshold;
     private double cancelBuffer; // For the next 4 hits after using reach, we aggressively cancel reach
 
@@ -188,9 +189,10 @@ public class Reach extends Check implements PacketReceiveListener {
             )); // Queue for next tick for very precise check
         }
 
-        boolean knownInvalid = attackRangeMovement == null && isKnownInvalid(entity, hasRange, maxReach, hitboxMargin);
+        ResultType knownInvalid = isKnownInvalid(entity, hasRange, maxReach, hitboxMargin);
 
-        if ((shouldModifyPackets() && cancelImpossibleHits && knownInvalid) || tooManyAttacks) {
+        if (shouldModifyPackets() && ((knownInvalid == ResultType.HITBOX && blockHitboxHits)
+                    || (knownInvalid == ResultType.REACH && blockReachHits)) || tooManyAttacks) {
             event.setCancelled(true);
             player.onPacketCancel();
         }
@@ -204,24 +206,28 @@ public class Reach extends Check implements PacketReceiveListener {
     // than this method.  If this method flags, the other method WILL flag.
     //
     // Meaning that the other check should be the only one that flags.
-    private boolean isKnownInvalid(PacketEntity reachEntity, boolean hasAttackRange, float itemMaxReach, float itemHitboxMargin) {
+    private ResultType isKnownInvalid(PacketEntity reachEntity, boolean hasAttackRange, float itemMaxReach, float itemHitboxMargin) {
         // If the entity doesn't exist, or if it is exempt, or if it is dead
         if ((blacklisted.contains(reachEntity.getType()) || !reachEntity.isLivingEntity) && reachEntity.getType() != EntityTypes.END_CRYSTAL)
-            return false; // exempt
+            return ResultType.NONE; // exempt
 
         if (player.gamemode == GameMode.CREATIVE || player.gamemode == GameMode.SPECTATOR)
-            return false;
-        if (player.inVehicle()) return false;
+            return ResultType.NONE;
+        if (player.inVehicle()) return ResultType.NONE;
 
         // Filter out what we assume to be cheats
         if (cancelBuffer != 0) {
-            CheckResult result = checkReach(reachEntity, player.x, player.y, player.z, hasAttackRange, itemMaxReach, itemHitboxMargin, null, true);
-            return result.isFlag();
+            return checkReach(reachEntity, player.x, player.y, player.z, hasAttackRange, itemMaxReach, itemHitboxMargin, null, true).type();
         } else {
             SimpleCollisionBox targetBox = getTargetBox(reachEntity);
 
             double maxReach = applyReachModifiers(targetBox, hasAttackRange, itemMaxReach, itemHitboxMargin, !player.packetStateData.didLastMovementIncludePosition);
-            return ReachUtils.getMinReachToBox(player, targetBox) > maxReach;
+            final double reachToBox = ReachUtils.getMinReachToBox(player, targetBox);
+
+            if (reachToBox > maxReach) {
+                return ResultType.REACH;
+            }
+            return ResultType.NONE;
         }
     }
 
@@ -316,6 +322,7 @@ public class Reach extends Check implements PacketReceiveListener {
             }
         }
 
+
         return NONE;
     }
 
@@ -373,7 +380,8 @@ public class Reach extends Check implements PacketReceiveListener {
 
     @Override
     public void onReload(@NotNull ConfigManager config) {
-        this.cancelImpossibleHits = config.getBooleanElse("Reach.block-impossible-hits", true);
+        this.blockReachHits = config.getBooleanElse("Reach.block-reach-hits", true);
+        this.blockHitboxHits = config.getBooleanElse("Reach.block-hitbox-hits", false);
         this.threshold = config.getDoubleElse("Reach.threshold", 0.0005);
     }
 
