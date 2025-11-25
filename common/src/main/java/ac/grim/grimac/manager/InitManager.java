@@ -55,6 +55,7 @@ public class InitManager {
                 .add(GrimAPI.INSTANCE.getDiscordManager())
                 .add(GrimAPI.INSTANCE.getSpectateManager())
                 .add(GrimAPI.INSTANCE.getDataStoreLifecycle())
+                .add(GrimAPI.INSTANCE.getPlayerDataManager())
                 .add(new JavaVersion())
                 .add(new ViaVersion())
                 .add(new TAB())

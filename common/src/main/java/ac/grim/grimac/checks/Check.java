@@ -10,6 +10,7 @@ import ac.grim.grimac.api.storage.verbose.VerboseRenderContext;
 import ac.grim.grimac.checks.type.CanBeDisabled;
 import ac.grim.grimac.internal.storage.verbose.VerboseRegistry;
 import ac.grim.grimac.player.GrimPlayer;
+import ac.grim.grimac.utils.reflection.GeyserUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -94,6 +95,7 @@ public class Check extends GrimProcessor implements AbstractCheck, CanBeDisabled
     }
 
     public final void updatePermissions() {
+        if (getConfigName() == null) return;
         final String id = getConfigName().toLowerCase();
         exemptPermission = player.hasPermission("grim.exempt." + id);
         noSetbackPermission = player.hasPermission("grim.nosetback." + id);
@@ -222,7 +224,10 @@ public class Check extends GrimProcessor implements AbstractCheck, CanBeDisabled
         setbackVL = configuration.getDoubleElse(getConfigName() + ".setbackvl", defaultSetbackVL);
         displayName = configuration.getStringElse(getConfigName() + ".displayname", checkName);
         description = configuration.getStringElse(getConfigName() + ".description", defaultDescription);
-        run = !configuration.getListElse("disabled-checks", Collections.emptyList()).contains(getConfigName());
+
+        final boolean disabled = configuration.getListElse("disabled-checks", Collections.emptyList()).contains(getConfigName());
+        final boolean disabledBedrock = configuration.getListElse("disabled-bedrock-checks", Collections.emptyList()).contains(getConfigName());
+        run = !(disabled || (disabledBedrock && GeyserUtil.isBedrockPlayer(player.uuid)));
 
         if (setbackVL == -1) setbackVL = Double.MAX_VALUE;
         super.reload(configuration);
