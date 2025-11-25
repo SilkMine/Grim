@@ -18,6 +18,10 @@ alerts:
 verbose:
     print-to-console: false
 
+# Should Bedrock players connecting through Geyser be checked?
+# Enable at your own risk, Bedrock movement is different, a lot of checks will flag.
+check-bedrock: false
+
 check-for-updates: true
 
 client-brand:

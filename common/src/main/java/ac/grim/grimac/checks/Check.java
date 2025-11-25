@@ -5,6 +5,7 @@ import ac.grim.grimac.api.AbstractCheck;
 import ac.grim.grimac.api.config.ConfigManager;
 import ac.grim.grimac.api.event.events.FlagEvent;
 import ac.grim.grimac.player.GrimPlayer;
+import ac.grim.grimac.utils.reflection.GeyserUtil;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
@@ -144,7 +145,9 @@ public class Check extends GrimProcessor implements AbstractCheck {
         setbackVL = configuration.getDoubleElse(configName + ".setbackvl", setbackVL);
         displayName = configuration.getStringElse(configName + ".displayname", checkName);
         description = configuration.getStringElse(configName + ".description", description);
-        run = !configuration.getListElse("disabled-checks", Collections.emptyList()).contains(configName);
+        final boolean disabled = configuration.getListElse("disabled-checks", Collections.emptyList()).contains(configName);
+        final boolean disabledBedrock = configuration.getListElse("disabled-bedrock-checks", Collections.emptyList()).contains(configName);
+        run = !(disabled || (disabledBedrock && GeyserUtil.isBedrockPlayer(player.uuid)));
 
         if (setbackVL == -1) setbackVL = Double.MAX_VALUE;
         onReload(configuration);

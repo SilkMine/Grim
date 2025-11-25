@@ -3,6 +3,8 @@ package ac.grim.grimac.utils.anticheat;
 import ac.grim.grimac.GrimAPI;
 import ac.grim.grimac.api.event.events.GrimJoinEvent;
 import ac.grim.grimac.api.event.events.GrimQuitEvent;
+import ac.grim.grimac.manager.init.ReloadableInitable;
+import ac.grim.grimac.manager.init.start.StartableInitable;
 import ac.grim.grimac.player.GrimPlayer;
 import ac.grim.grimac.utils.reflection.GeyserUtil;
 import com.github.retrooper.packetevents.PacketEvents;
@@ -15,7 +17,7 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class PlayerDataManager {
+public class PlayerDataManager implements ReloadableInitable, StartableInitable {
 
     // Holder — PlayerDataManager is constructed inside GrimAPI's ctor, so a
     // plain static-final would see a null GrimAPI.INSTANCE. Holder init runs
@@ -27,6 +29,9 @@ public class PlayerDataManager {
 
     public final Collection<User> exemptUsers = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<User, GrimPlayer> playerDataMap = new ConcurrentHashMap<>();
+
+    private boolean checkBedrock = false;
+
 
     @Nullable
     public GrimPlayer getPlayer(final @NotNull UUID uuid) {
@@ -50,7 +55,7 @@ public class PlayerDataManager {
 
         if (user.getUUID() != null) {
             // Bedrock players don't have Java movement
-            if (GeyserUtil.isBedrockPlayer(user.getUUID())) {
+            if (!checkBedrock && GeyserUtil.isBedrockPlayer(user.getUUID())) {
                 exemptUsers.add(user);
                 return false;
             }
@@ -64,7 +69,7 @@ public class PlayerDataManager {
 
             // Geyser formatted player string
             // This will never happen for Java players, as the first character in the 3rd group is always 4 (xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx)
-            if (user.getUUID().toString().startsWith("00000000-0000-0000-0009")) {
+            if (!checkBedrock && user.getUUID().toString().startsWith("00000000-0000-0000-0009")) {
                 exemptUsers.add(user);
                 return false;
             }
@@ -125,5 +130,16 @@ public class PlayerDataManager {
 
     public int size() {
         return playerDataMap.size();
+    }
+
+    @Override
+    public void reload() {
+        checkBedrock = GrimAPI.INSTANCE.getConfigManager().getConfig().getBooleanElse("check-bedrock", false);
+        LogUtil.info("PlayerDataManager - checkBedrock set to " + checkBedrock);
+    }
+
+    @Override
+    public void start() {
+        reload();
     }
 }
