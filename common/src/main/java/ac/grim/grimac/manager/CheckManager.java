@@ -16,6 +16,7 @@ import ac.grim.grimac.checks.impl.chat.ChatC;
 import ac.grim.grimac.checks.impl.chat.ChatD;
 import ac.grim.grimac.checks.impl.combat.*;
 import ac.grim.grimac.checks.impl.crash.*;
+import ac.grim.grimac.checks.impl.custom.StaticAirCheck;
 import ac.grim.grimac.checks.impl.elytra.*;
 import ac.grim.grimac.checks.impl.exploit.ExploitA;
 import ac.grim.grimac.checks.impl.exploit.ExploitB;
@@ -164,6 +165,7 @@ public class CheckManager implements BasicReloadable {
                 .put(AimDuplicateLook.class, new AimDuplicateLook(player))
                 .put(VehiclePredictionRunner.class, new VehiclePredictionRunner(player))
 
+                .put(StaticAirCheck.class, new StaticAirCheck(player))
                 .put(NegativeTimer.class, new NegativeTimer(player))
                 .put(ExplosionHandler.class, new ExplosionHandler(player))
                 .put(KnockbackHandler.class, new KnockbackHandler(player))
