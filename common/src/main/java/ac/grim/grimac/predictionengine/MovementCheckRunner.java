@@ -564,8 +564,10 @@ public class MovementCheckRunner extends Check implements PositionCheck {
                     player.predictedVelocity.vector.getY() < 0.06 && player.predictedVelocity.vector.getY() > -0.02;
             // Player ignored the knockback or is delaying it a tick... bad!
             if (!player.predictedVelocity.isKnockback() && !lavaBugFix && player.getSetbackTeleportUtil().getRequiredSetBack().getVelocity() != null) {
-                // And then send it again!
-                player.getSetbackTeleportUtil().executeForceResync();
+                if (!isIsMinorCorrection()) {
+                    // And then send it again!
+                    player.getSetbackTeleportUtil().executeForceResync();
+                }
             }
         }
 
@@ -649,6 +651,25 @@ public class MovementCheckRunner extends Check implements PositionCheck {
 
         player.trigHandler.setOffset(offset);
         player.pointThreeEstimator.endOfTickTick();
+    }
+
+    private boolean isIsMinorCorrection() {
+        Vector3dm sentVelocity = player.getSetbackTeleportUtil().getRequiredSetBack().getVelocity();
+        boolean isMinorCorrection = true;
+
+        // Gliding: allow if velocity is just minor physics correction (gravity/drag)
+//        if (player.isGliding) {
+//            // If horizontal velocity is significant (> 0.1) or upward velocity exists, it's likely a boost/exploit correction
+//            double horizontalMagnitude = Math.sqrt(sentVelocity.getX() * sentVelocity.getX() + sentVelocity.getZ() * sentVelocity.getZ());
+//            isMinorCorrection = horizontalMagnitude < 0.025 && sentVelocity.getY() < 0;
+//        }
+
+        // Water: allow if velocity is just buoyancy (small Y changes only)
+        if (player.wasTouchingWater) {
+            isMinorCorrection = Math.abs(sentVelocity.getX()) < 0.01 && Math.abs(sentVelocity.getZ()) < 0.01
+                    && Math.abs(sentVelocity.getY()) < 0.1;
+        }
+        return isMinorCorrection;
     }
 
     /**
